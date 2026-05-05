@@ -1,0 +1,69 @@
+# 2. Secured and monitored web infrastructure
+
+This project is a design of a three-server web infrastructure that is secured with firewalls, serves traffic over HTTPS using an SSL certificate, and is actively monitored.
+
+## Infrastructure Diagram
+
++------------------------+
+
+|    User's Browser      |
++-----------+------------+
+
+            |
+            | (1) Encrypted HTTPS Request
+            v
++------------------------+
+
+|      DNS Server        |
++-----------+------------+
+
+            |
+            v
++------------------------+
+|      [ FIREWALL ]      |
++-----------+------------+
+
+            |
+            v
++------------------------+
+|  Load Balancer (Node 1)|
+|       (HAProxy)        |
+| * SSL Terminated here  |
+| * Monitoring Client    |
++-----+------------+-----+
+
+      |            |
+      v            v
++-----------+  +-----------+
+
+| [FIREWALL]|  |[FIREWALL] |
++-----------+  +-----------+
+
+      |            |
++-----+-----+  +-----+-----+
+
+| Server 1  |  | Server 2  |
+| (Node 2)  |  | (Node 3)  |
+| * Nginx   |  | * Nginx   |
+| * App Srv |  | * App Srv |
+| * MySQL   |  | * MySQL   |
+| * Mon Client | * Mon Client |
++-----------+  +-----------+
+
+## Specifics About This Infrastructure
+
+* **Why additional elements are added:**
+  * **3 Firewalls:** Added to protect each of the three servers from unauthorized access and malicious network traffic.
+  * **SSL Certificate:** Added to encrypt the communication between the user's browser and the web infrastructure.
+  * **3 Monitoring Clients:** Added to collect system metrics (CPU, memory, logs) from all servers to ensure visibility.
+* **What are firewalls for:** Firewalls are security systems that monitor and control incoming and outgoing network traffic based on predetermined security rules. They block unauthorized access while permitting outward communication.
+* **Why is the traffic served over HTTPS:** Traffic is served over HTTPS to ensure that all data transferred between the user and the server is encrypted, protecting sensitive information (like passwords) from eavesdropping and man-in-the-middle attacks.
+* **What monitoring is used for:** Monitoring is used to track the health, performance, and availability of the infrastructure. It helps in detecting failures, analyzing bottlenecks, and planning for future scaling.
+* **How the monitoring tool is collecting data:** The monitoring client (data collector) installed on each server periodically gathers system metrics (such as CPU load, memory usage, and disk I/O) and sends this data to a centralized monitoring service (like Sumo Logic).
+* **To monitor web server QPS (Queries Per Second):** You need to configure the monitoring tool to parse the Nginx access logs or use an Nginx status module to extract the total number of incoming requests and divide them by time to calculate the QPS.
+
+## Issues with This Infrastructure
+
+* **Why terminating SSL at the load balancer level is an issue:** It means traffic is unencrypted when moving from the load balancer to the application servers inside the internal network. If an attacker breaches the internal network, they can sniff this raw traffic.
+* **Why having only one MySQL server capable of accepting writes is an issue:** It creates a Single Point of Failure (SPOF) for data modification. If the Primary (Master) database fails, the application cannot process new user registrations, orders, or updates until it is fixed or promoted.
+* **Why having servers with all the exact same components might be a problem:** Running a database, a web server, and an application server on the exact same machine means they compete for the same CPU, RAM, and disk resources. A surge in web traffic could starve the database of resources, causing the entire node to crash.
