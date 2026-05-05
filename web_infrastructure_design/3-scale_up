@@ -1,0 +1,58 @@
+# 3. Scale up
+
+This project is a design of a scaled-up web infrastructure where components are separated onto their own dedicated servers, and load balancers are configured in a cluster to eliminate single points of failure.
+
+## Infrastructure Diagram
+
++------------------------+
+
+|    User's Browser      |
++-----------+------------+
+
+            |
+            v
++-----------+------------+
+|       DNS Server       |
++-----------+------------+
+
+            |
+            v
++-----------+------------+
+|  Load Balancer Cluster |
+| [HAProxy 1] <-> [HAProxy 2] |
++-----------+------------+
+
+            |
+            | (Traffic distribution)
+            v
++-----------+------------+
+
+|    Web Server Node     |
+|       (Nginx)          |
++-----------+------------+
+
+            |
+            v
++-----------+------------+
+|   Application Server   |
+|     (Code Base)        |
++-----------+------------+
+
+            |
+            v
++-----------+------------+
+|    Database Server     |
+|       (MySQL)          |
++------------------------+
+
+## Specifics About This Infrastructure
+
+* **Why additional elements are added:**
+  * **1 additional server:** Added to allow the separation of components onto their own dedicated hardware.
+  * **Load Balancer Cluster (HAProxy):** A second load balancer is added to work in a cluster with the first one. This ensures high availability. If one load balancer fails, the other automatically takes over, eliminating the load balancer as a Single Point of Failure (SPOF).
+  * **Split Components:** Moving the web server, application server, and database to their own dedicated servers ensures they do not compete for the same CPU, RAM, and disk resources. This improves overall performance, security, and makes it easier to scale individual layers based on demand.
+
+## Application Server vs Web Server
+
+* **Web Server:** A web server (like Nginx or Apache) is responsible for handling HTTP requests from clients. Its primary job is to serve static content such as HTML pages, images, and CSS files. It acts as the front line that receives the user's initial traffic.
+* **Application Server:** An application server is responsible for running the actual business logic of the website. It processes dynamic code (like Python, PHP, or Ruby), connects to the database to fetch or store data, and generates the dynamic HTML or JSON response that is sent back to the web server to be delivered to the user.
