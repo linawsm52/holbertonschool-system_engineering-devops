@@ -1,0 +1,55 @@
+# 0. Simple web stack
+
+This project is a design of a one-server web infrastructure that hosts a website reachable via www.foobar.com.
+
+## Infrastructure Diagram
+
++--------------------------------------------------+
+
+|                  User's Browser                  |
++------------------------+-------------------------+
+
+                         |
+                         | (1) DNS Query
+                         v
++------------------------+-------------------------+
+
+|                    DNS Server                    |
+|       (Maps www.foobar.com to 8.8.8.8)           |
++------------------------+-------------------------+
+
+                         |
+                         | (2) HTTP/HTTPS Request
+                         v
++------------------------+-------------------------+
+
+|               Server (IP: 8.8.8.8)               |
+|                                                  |
+|  +----------------+      +--------------------+  |
+|  |   Web Server   +----->+ Application Server |  |
+|  |    (Nginx)     |      |    (Code Base)     |  |
+|  +----------------+      +---------+----------+  |
+|                                    |             |
+|                                    |             |
+|                                    v             |
+|                          +---------+----------+  |
+|                          |      Database      |  |
+|                          |      (MySQL)       |  |
+|                          +--------------------+  |
++--------------------------------------------------+
+
+## Specifics About This Infrastructure
+
+* **What is a server:** A server is a computer (physical or virtual) that provides resources, data, or services to other computers, known as clients, over a network.
+* **What is the role of the domain name:** The domain name (foobar.com) provides a human-readable and easy-to-remember address to access the website, instead of using the raw IP address.
+* **What type of DNS record www is in www.foobar.com:** Since it points directly to the server's IP address (8.8.8.8), it is an **A record**.
+* **What is the role of the web server:** The web server (Nginx) accepts incoming HTTP/HTTPS requests from users. It serves static content (like HTML/CSS) and forwards dynamic requests to the application server.
+* **What is the role of the application server:** The application server operates the website's code and business logic. It processes the application files and communicates with the database to generate dynamic content.
+* **What is the role of the database:** The database (MySQL) is used to store, organize, and retrieve structured data required by the application.
+* **What is the server using to communicate with the computer of the user requesting the website:** The server communicates with the user's computer via the HTTP or HTTPS protocol over a TCP/IP connection.
+
+## Issues with This Infrastructure
+
+* **SPOF (Single Point of Failure):** Since there is only one server holding the web server, application server, and database, if this server goes down, the entire website becomes unavailable.
+* **Downtime when maintenance needed:** Whenever maintenance is required (such as upgrading the web server or deploying new code), the services may need to be restarted, resulting in downtime for users.
+* **Cannot scale if too much incoming traffic:** A single server cannot handle infinite traffic. Vertical scaling (adding more RAM/CPU) has limits, and this setup does not support horizontal scaling (adding more servers).
