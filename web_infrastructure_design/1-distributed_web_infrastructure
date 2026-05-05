@@ -1,0 +1,88 @@
+# 1. Distributed web infrastructure
+
+This project is a design of a three-server web infrastructure that hosts a website reachable via www.foobar.com to reduce single points of failure and handle more traffic.
+
+## Infrastructure Diagram
+
++------------------------+
+
+|    User's Browser      |
++-----------+------------+
+
+            |
+            | (1) DNS Query
+            v
++------------------------+
+
+|       DNS Server       |
++-----------+------------+
+
+            |
+            | (2) Traffic forwarded to Load Balancer
+            v
++------------------------+
+
+|  Load Balancer (Node 1)|
+|       (HAProxy)        |
++-----+------------+-----+
+
+      |            |
+      | (3) Distributes traffic (Round Robin)
+      v            v
++-----------+  +-----------+
+
+| Server 1  |  | Server 2  |
+| (Node 2)  |  | (Node 3)  |
+|           |  |           |
+| +-------+ |  | +-------+ |
+| | Nginx | |  | | Nginx | |
+| +---+---+ |  | +---+---+ |
+|     |     |  |     |     |
+| +---v---+ |  | +---v---+ |
+| | App   | |  | | App   | |
+| | Server| |  | | Server| |
+| +---+---+ |  | +---+---+ |
+|     |     |  |     |     |
++-----+-----+  +-----+-----+
+
+      |              |
+      | (4) Database Operations
+
+      |              |
++-----v--------------v-----+
+
+| Database Cluster (MySQL) |
+|                          |
+| +----------------------+ |
+| |    Primary Node      | |
+| | (Master - Writes)    | |
+| +----------+-----------+ |
+|            |             |
+|            | (5) Replication
+|            v             |
+| +----------------------+ |
+| |    Replica Node      | |
+| | (Slave - Reads)      | |
+| +----------------------+ |
++--------------------------+
+
+## Specifics About This Infrastructure
+
+* **Why additional elements are added:**
+  * **Load Balancer (HAProxy):** Added to distribute incoming network traffic across multiple servers to prevent any single server from becoming overloaded and to eliminate web/app server SPOF.
+  * **Second Server:** Added to share the processing load and provide redundancy if the first server fails.
+  * **Database Replica:** Added to safeguard data and separate read/write operations to improve performance.
+* **Distribution Algorithm:** The load balancer is configured with the **Round Robin** algorithm. It works by sending requests to each server in sequential order, distributing the load equally among them.
+* **Active-Active vs. Active-Passive:**
+  * This setup is **Active-Active** because both server nodes are actively receiving and processing traffic simultaneously.
+  * In an **Active-Passive** setup, only one server actively handles traffic while the other remains idle, acting as a backup that takes over only if the active server fails.
+* **How Primary-Replica (Master-Slave) cluster works:** The Primary node is the main database that handles all write operations (inserts, updates, deletes). It automatically syncs (replicates) its data to the Replica node.
+* **Difference between Primary and Replica nodes for the application:** The application sends all data-changing operations (Writes) directly to the Primary node. It directs read operations (Queries) to the Replica node to reduce the workload on the Primary node.
+
+## Issues with This Infrastructure
+
+* **SPOF (Single Point of Failure):** The Load Balancer itself is a SPOF. If it fails, users cannot reach the website. The Primary database is also a SPOF for write operations.
+* **Security issues:**
+  * There is no firewall configured to block unauthorized network traffic.
+  * There is no HTTPS/SSL encryption, meaning data is transmitted in plain text and can be intercepted.
+* **No monitoring:** There are no monitoring tools installed to track server health, CPU usage, or traffic anomalies, making it hard to detect or debug live issues.
